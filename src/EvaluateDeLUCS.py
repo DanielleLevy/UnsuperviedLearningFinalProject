@@ -15,7 +15,7 @@ from scipy import stats
 
 # Random Seeds for reproducibility.
 torch.manual_seed(0)
-torch.cuda.manual_seed(0)
+torch.manual_seed(0)
 np.random.seed(0)
 random.seed(0)
 
@@ -44,8 +44,8 @@ def eval_training(net, training_set, x_test, y_test, l=1.0, _lr=0.0001, k=6):
     """
     # Training parameters:
     batch_size = 512
-    epochs = 150
-    dtype = torch.cuda.FloatTensor
+    epochs = 10
+    dtype = torch.float32
 
     dataloader = DataLoader(training_set, batch_size=batch_size, shuffle=True, num_workers=4)
 
@@ -53,13 +53,15 @@ def eval_training(net, training_set, x_test, y_test, l=1.0, _lr=0.0001, k=6):
 
     optimizer = optim.Adam(net.parameters(), lr=_lr)
 
-    for epoch in range(epochs):  # This is the number of times we want to iterate over the full dataset
+    for epoch in range(epochs):# This is the number of times we want to iterate over the full dataset
+        print(f"Epoch {epoch + 1}/{epochs} running...")
+
         running_loss = 0.0
         net.train()
 
         for i_batch, sample_batched in enumerate(dataloader):
-            sample = sample_batched['true'].view(-1, 1, 2 ** k, 2 ** k).type(dtype)
-            modified_sample = sample_batched['modified'].view(-1, 1, 2 ** k, 2 ** k).type(dtype)
+            sample = sample_batched['true'].view(-1, 1, 2 ** k, 2 ** k).to("mps")
+            modified_sample = sample_batched['modified'].view(-1, 1, 2 ** k, 2 ** k).to("mps")
 
             # zero the gradients
             optimizer.zero_grad()
@@ -79,7 +81,7 @@ def eval_training(net, training_set, x_test, y_test, l=1.0, _lr=0.0001, k=6):
         if epoch % 30 == 0 and epoch != 0:
             with torch.no_grad():
                 for param in net.parameters():
-                    param.add_(torch.randn(param.size()).type(dtype) * 0.09)
+                    param.add_(torch.randn(param.size()).to("mps") * 0.09)
 
     # ------------------- Testing Process -------------------------------------
 
@@ -89,11 +91,12 @@ def eval_training(net, training_set, x_test, y_test, l=1.0, _lr=0.0001, k=6):
     y_true = []  # "ground truth" is available
 
     for i in range(x_test.shape[0]):  # we do this for each sample or sample batch
-
+        if i % 100 == 0:
+            print(f"Processing test sample {i}/{x_test.shape[0]}")
         sample = torch.from_numpy(x_test[i])
         label = y_test[i]
 
-        sample = sample.view(1, 1, 2 ** k, 2 ** k).type(dtype)
+        sample = sample.view(1, 1, 2 ** k, 2 ** k).to("mps")
         output = net(sample)
 
         top_n, top_i = output.topk(1)  # Get Label from prediction.
@@ -153,14 +156,14 @@ def main():
     predictions = []
     accuracies = []
 
-    for i in range(10):
+    for i in range(1):
         l = 2.8  # 2.8
         _lr = 8.e-5
 
         # Initialize the network using the Kaiming technique
         net = Net_linear(4 ** k, numClasses)
         net.apply(weights_init)
-        net.cuda()
+        net.to("mps")
 
         prediction, acc = eval_training(net, training_set, x_test, y_test, l=l, _lr=_lr, k=6)
         predictions.append(prediction)
@@ -173,7 +176,7 @@ def main():
 
     w = np.zeros((numClasses, numClasses), dtype=np.int64)
     for i in range(y_test.shape[0]):
-        w[y_test[i], mode[0][i]] += 1
+        w[y_test[i], int(mode[i])] += 1  # שינוי mode[0][i] ל-mode[i]
 
         # Print "misclassified" sequences.
         # if y_test[i] != mode[0][i]:
