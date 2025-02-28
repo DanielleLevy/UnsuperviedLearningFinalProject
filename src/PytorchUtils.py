@@ -5,6 +5,31 @@ from torch.utils.data import Dataset
 import torch.nn as nn
 from torch.autograd import Variable
 
+# -----------Creating the Class SEBlock (SE Attention) ------------------------
+class SEBlock(nn.Module):
+    def __init__(self, in_channels, reduction=16):
+        super(SEBlock, self).__init__()
+        self.global_avg_pool = nn.AdaptiveAvgPool2d(1)  # Squeeze operation
+        self.fc1 = nn.Linear(in_channels, in_channels // reduction, bias=False)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(in_channels // reduction, in_channels, bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        batch_size, channels, _, _ = x.size()
+
+        # Squeeze: Global Average Pooling
+        y = self.global_avg_pool(x).view(batch_size, channels)
+
+        # Excitation: Two FC layers with non-linearity
+        y = self.fc1(y)
+        y = self.relu(y)
+        y = self.fc2(y)
+        y = self.sigmoid(y)
+
+        # Reshape and Scale: Apply channel-wise attention
+        y = y.view(batch_size, channels, 1, 1)
+        return x * y  # Scale the feature maps
 
 # -----------Creating the Class Dataset (Unsupervised) ------------------------
 class Seq_data(Dataset):
@@ -59,14 +84,20 @@ class LabeledData(Dataset):
 class Net(nn.Module):
     def __init__(self, n_input, n_output, w):
         super(Net, self).__init__()
+
         self.features = nn.Sequential(
             nn.Conv2d(1, 32, w),
+            SEBlock(32),  # Add SE Block after conv1
             nn.ReLU(),
+
             nn.Conv2d(32, 64, 3),
+            SEBlock(64),  # Add SE Block after conv2
             nn.ReLU(),
+
             nn.MaxPool2d((2, 2)),
             nn.Dropout(p=0.25)
         )
+
         self.flat_fts = self.get_flat_fts(n_input, self.features)
         self.classifier = nn.Sequential(
             nn.Linear(self.flat_fts, 512),
@@ -76,8 +107,8 @@ class Net(nn.Module):
         )
 
     def get_flat_fts(self, in_size, fts):
-        f = fts(Variable(torch.ones(1, 1, in_size, in_size)))
-        return int(np.prod(f.size()[1:]))
+        f = fts(torch.ones(1, 1, in_size, in_size))  # No need for Variable in PyTorch >=0.4
+        return int(torch.prod(torch.tensor(f.size()[1:])))
 
     def forward(self, x):
         fts = self.features(x)
