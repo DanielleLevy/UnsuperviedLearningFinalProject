@@ -1,152 +1,45 @@
-# DeLUCS
-This repository contains all the source files required to reproduce the results in the original DeLUCS paper (https://doi.org/10.1101/2021.05.13.444008), as well as a detailed guide for running the code.
+# DeLUCS – Final Project (Modified)
 
-<!--
-<p align="center">
-<img src ="paper/Images/Fig3.png" alt="drawing" width="800"/>
-</p>
--->
+This repository is a **modified and extended version of [DeLUCS](https://doi.org/10.1371/journal.pone.0261531)** – an unsupervised deep learning framework for clustering DNA sequences.
 
-## Computational Pipeline: 
+Our final project involved applying DeLUCS to new datasets, extending its architecture, and evaluating its performance.
 
+---
 
-### 1. Build the dataset:
-  ```
-  	python build_dp.py --data_path=<PATH_sequence_folder>	
-  ```
- * Input: Folders with the sequences in FASTA format
- * Output : file in the form (label,sequence,accession)
+## 🔧 Summary of Modifications
 
+We made the following changes to the original DeLUCS codebase:
 
-### 2. Compute the mimic sequences.
+- 📁 Added `compare.py`: a new script to **compare the performance of DeLUCS with an improved variant** using multiple attention heads (`Net_linear_improved`).
+- 🧠 Implemented `Net_linear_improved` with a configurable number of heads for richer representations.
+- 📊 Logged training loss and test accuracy over multiple runs and visualized comparisons.
+- 🧪 Evaluated on the **Bacteria** dataset (`data/Bacteria`) with 3 variants: Original, Improved-8-heads, Improved-16-heads.
+- 📄 Added our final report summarizing methodology, results, and conclusions: [`src/final_report.pdf`](src/final_report.pdf)
 
-  ```
-	python get_pairs.py --data_path=<PATH_pickle_dataset> --k=6 --modify='mutation' --output=<PATH_output_file> --n_mimics=<n mimics per sequence>
-  ```
-* Input: file in the form (label,sequence,accession)
-* Output : file in the form of (pairs, x_test, y_test)
-  
-### 3. Train the model.
-	* For training DeLUCS and testing its performance
-		```
-		python EvaluateDeLUCS.py --data_dir=<PATH_of_computed_mimics> --out_dir=<OUTPURDIR>
-		```
+---
 
-		* Input: Pickle file with the mimics in the form of (pairs, x_test, y_test). 
-		* Output : Confusion Matrix. 
-				<!--* File with the misclassified sequences in the form (accession, true_label, predicted_label)-->
+## 🗂 Structure
 
-	* For testing the performance  a single Neural Network trained in an unsupervised way (labels must be available):
-		```
-		python EvaluateSingleRun.py --data_dir=<PATH_of_computed_mimics> --out_dir=<OUTPURDIR>
-		```
-## Training on your own data
-We recomend using the updated version of the code in (https://github.com/Kari-Genomics-Lab) for training on your own data. 
+- `src/EvaluateDeLUCS.py`: Original training and evaluation code.
+- `src/compare.py`: Our modified evaluation pipeline comparing different architectures.
+- `src/PytorchUtils.py`: Includes `Net_linear` and our `Net_linear_improved`.
+- `data/Bacteria`: Dataset used for the extended analysis.
 
-## Citation 
+---
 
-If you find DeLUCS useful in your research please consider citing:
+## 📊 Results
 
-	
-	@article{10.1371/journal.pone.0261531,
-	    doi = {10.1371/journal.pone.0261531},
-	    author = {Millán Arias, Pablo AND Alipour, Fatemeh AND Hill, Kathleen A. AND Kari, Lila},
-	    journal = {PLOS ONE},
-	    publisher = {Public Library of Science},
-	    title = {DeLUCS: Deep learning for unsupervised clustering of DNA sequences},
-	    year = {2022},
-	    month = {01},
-	    volume = {17},
-	    url = {https://doi.org/10.1371/journal.pone.0261531},
-	    pages = {1-25},
-	    number = {1},
-	}	
-	
+See the full summary and visualizations in the [📄 final report (PDF)](src/final_report.pdf).
 
-<!--in one of the Compute Canada clusters available for our lab.
+Key outcomes:
+- Improved model with 16 heads achieved better clustering accuracy across multiple runs.
+- Training stability was also enhanced, as seen in the loss curves.
 
-<!-- ## Accesing the resources:
+---
 
-<!-- In our lab we have acces to three different clusters within the Compute Canada infraestructure: Cedar and Graham. We can acces the cluster via ssh using the Compute Canada credentials and the name of the cluster we want to access:
-```
-ssh pmillana@cedar.computecanada.ca
-ssh pmillana@graham.computecanada.ca
-```
-## Different File Systems: 
-Once you have accessed the cluster trough a login node (Do not run anything on this nodes), you will see that all our folders are under the account ```def-khill22```, this is the account name of our group and should be used for every job submition. 
-For each user in our account there are differnt file systems that should be used for different purposes: 
-<!-- 
-* **HOME**: While your home directory may seem like the logical place to store all your files and do all your work, in general this isn't the case - your home normally has a relatively small quota and doesn't have especially good performance for the writing and reading of large amounts of data. The most logical use of your home directory is typically source code, small parameter files and job submission scripts.
-* **PROJECT**: The project space has a significantly larger quota and is well-adapted to sharing data among members of a research group since it, unlike the home or scratch, is linked to a professor's account rather than an individual user.
-* **SCRATCH**: For intensive read/write operations, scratch is the best choice. Remember however that important files must be copied off scratch since they are not backed up there, and older files are subject to purging. The scratch storage should therefore only be used for transient files.
-<!-- 
-<p align="center">
-  <img src ="Images\Screenshot from 2020-06-02 19-41-06.png" alt="drawing" width="500"/>
-</p>
+## 💡 How to Run
 
-<!-- 
-The following table is taken from the Compute Canada documentation and show all the policies for each file system:
-<!-- 
-<p align="center">
-  <img src ="Images\Screenshot from 2020-06-02 19-41-15.png" alt="drawing" width="500"/>
-</p>
+To compare the original vs. improved models on the Bacteria dataset:
 
-
-
-<!-- 
-For transfering local files to the cluster you can use ```scp``` with the same credentials you used for logging into the system: 
-
-```
- scp  path_to_local_files  pmillana@cedar.computecanada.ca:~/desired_folder_inside_home_directory
-```
-<!-- 
-For more information see: https://docs.computecanada.ca/wiki/Storage_and_file_management and https://docs.computecanada.ca/wiki/Storage_and_file_management#Filesystem_quotas_and_policies
-
-<!-- 
-## Sumbitting Jobs: 
-Compute Canada uses SLURM https://slurm.schedmd.com/documentation.html for managing jobs and allocating resources within the different clusters. To submit a job you will need to create a sbatch script with all the requirements that are neccessary for running your code. 
-<!-- 
-**Note**: Submitting jobs from directories residing in /home is not permitted, transfer the sbatch script either to your /project or /scratch directory and submit the job from there.
-<!-- 
-You can also run your code inside an interactive node, this is recommended before submitting bigger jobs, an example of that can be:
-
- ``` (bash)
-  salloc --account=def-khill22 --gres=gpu:1 --cpus-per-task=4 --mem=32000M --time=0-00:25:00
- ```
- <!-- 
- You can run separately the commands in the following sbatch script inside your interactive node with few iterations to check that the code doesn't have any error. This is an example of the  script that was used in our case: 
- ```
-#!/bin/bash
-#SBATCH --gres=gpu:1       # Request GPU "generic resources"
-#SBATCH --cpus-per-task=6  # Cores proportional to GPUs: 6 on Cedar, 10 on Béluga, 16 on Graham.
-#SBATCH --mem=32000M       # Memory proportional to GPUs: 32000 Cedar, 47000 Béluga, 64000 Graham.
-#SBATCH --time=0-02:00     # DD-HH:MM:SS
-<!-- 
-module load python/3.6 cuda cudnn
-<!-- 
-SOURCEDIR=~/src   #I copied the files in this directory inside my home directory
-<!-- 
-# Prepare virtualenv
-virtualenv --no-download $SLURM_TMPDIR/env
-source $SLURM_TMPDIR/env/bin/activate
-pip install --no-index -r $SOURCEDIR/requirements.txt
-<!-- 
-# Start training
-python TrainCluster.py --data_path ~/scratch/data/train.p --load_data True
-# --data_path: Path of the decompressed training data.
-# --load_features: True if the training features are precomputed.
- ```
- For running the script you run: 
- ```
- sbatch --account=def-khill22 script.sh
- ```
- For monitoring the status of your job you can run: 
- 
-```
-squeue --account=def-khill22  
-```
-<!-- 
-A log file with the output of your job will be created after it finishes in the same directory of your sbash sript. 
-
- 
-
+```bash
+python src/compare.py
